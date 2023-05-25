@@ -13,45 +13,43 @@ import org.apache.nifi.processor.util.StandardValidators
 
 @Tags("example")
 @CapabilityDescription("Provide a description")
-// @ReadsAttributes({@ReadsAttribute(attribute = "", description = "")})
-// @WritesAttributes({@WritesAttribute(attribute = "", description = "")})
 class MyProcessor : AbstractProcessor() {
 
-  private var MY_PROPERTY: PropertyDescriptor =
-      PropertyDescriptor.Builder()
-          .name("MY_PROPERTY")
-          .displayName("My property")
-          .description("Example Property")
-          .required(true)
-          .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-          .build()
+    private var MY_PROPERTY: PropertyDescriptor =
+        PropertyDescriptor.Builder()
+            .name("MY_PROPERTY")
+            .displayName("My property")
+            .description("Example Property")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build()
 
-  private var MY_RELATIONSHIP: Relationship =
-      Relationship.Builder().name("MY_RELATIONSHIP").description("Example relationship").build()
+    private var MY_RELATIONSHIP: Relationship =
+        Relationship.Builder().name("MY_RELATIONSHIP").description("Example relationship").build()
 
-  private var descriptors: List<PropertyDescriptor> = listOf(MY_PROPERTY)
+    private var descriptors: List<PropertyDescriptor> = listOf(MY_PROPERTY)
 
-  private var relationships: Set<Relationship> = setOf(MY_RELATIONSHIP)
+    private var relationships: Set<Relationship> = setOf(MY_RELATIONSHIP)
 
-  private var myProperty: String = ""
+    private var myProperty: String = ""
 
-  override fun getRelationships(): Set<Relationship> {
-    return this.relationships
-  }
+    override fun getRelationships(): Set<Relationship> {
+        return this.relationships
+    }
 
-  override fun getSupportedPropertyDescriptors(): List<PropertyDescriptor> {
-    return descriptors
-  }
+    override fun getSupportedPropertyDescriptors(): List<PropertyDescriptor> {
+        return descriptors
+    }
 
-  @OnScheduled fun onScheduled(context: ProcessContext) {
-    myProperty = context.getProperty(MY_PROPERTY).toString();
-  }
+    @OnScheduled fun onScheduled(context: ProcessContext) {
+        myProperty = context.getProperty(MY_PROPERTY).toString();
+    }
 
-  override fun onTrigger(context: ProcessContext, session: ProcessSession) {
-    val flowFile: FlowFile = session.get() ?: return
+    override fun onTrigger(context: ProcessContext, session: ProcessSession) {
+        val flowFile: FlowFile = session.get() ?: return
 
-    session.write(flowFile, { o -> o.write(myProperty.toByteArray()) })
+        session.write(flowFile) { o -> o.write(myProperty.toByteArray()) }
 
-    session.transfer(flowFile, MY_RELATIONSHIP)
-  }
+        session.transfer(flowFile, MY_RELATIONSHIP)
+    }
 }

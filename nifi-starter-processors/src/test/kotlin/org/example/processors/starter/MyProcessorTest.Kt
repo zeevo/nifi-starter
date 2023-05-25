@@ -1,4 +1,4 @@
-package org.example.processors.starter;
+package org.example.processors.starter
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test;
 
 class MyProcessorTest {
 
-  private TestRunner testRunner;
+    private var testRunner : TestRunner? = null ;
 
-  @BeforeEach
-  public void init() {
-    testRunner = TestRunners.newTestRunner(MyProcessor.class);
-  }
+    @BeforeEach
+    fun init() {
+        testRunner = TestRunners.newTestRunner(MyProcessor::class.java);
+    }
 
-  @Test
-  public void testProcessor() {}
+    @Test
+    fun testProcessor() {}
 }
