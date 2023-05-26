@@ -4,6 +4,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.annotation.documentation.Tags
 import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.AbstractProcessor
 import org.apache.nifi.processor.ProcessContext
@@ -16,16 +17,20 @@ import org.apache.nifi.processor.util.StandardValidators
 class MyProcessor : AbstractProcessor() {
 
     private var MY_PROPERTY: PropertyDescriptor =
-        PropertyDescriptor.Builder()
-            .name("MY_PROPERTY")
-            .displayName("My property")
-            .description("Example Property")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build()
+            PropertyDescriptor.Builder()
+                    .name("MY_PROPERTY")
+                    .displayName("My property")
+                    .description("Example Property")
+                    .required(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                    .build()
 
     private var MY_RELATIONSHIP: Relationship =
-        Relationship.Builder().name("MY_RELATIONSHIP").description("Example relationship").build()
+            Relationship.Builder()
+                    .name("MY_RELATIONSHIP")
+                    .description("Example relationship")
+                    .build()
 
     private var descriptors: List<PropertyDescriptor> = listOf(MY_PROPERTY)
 
@@ -41,8 +46,9 @@ class MyProcessor : AbstractProcessor() {
         return descriptors
     }
 
-    @OnScheduled fun onScheduled(context: ProcessContext) {
-        myProperty = context.getProperty(MY_PROPERTY).toString();
+    @OnScheduled
+    fun onScheduled(context: ProcessContext) {
+        myProperty = context.getProperty(MY_PROPERTY).evaluateAttributeExpressions().toString()
     }
 
     override fun onTrigger(context: ProcessContext, session: ProcessSession) {
