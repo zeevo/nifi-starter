@@ -1,22 +1,20 @@
-x-user: &user "admin"
-x-pwd: &pwd "supersecret1"
-
 x-nifi-environment: &nifi-environment
   NIFI_WEB_HTTPS_PORT: 8443
-  NIFI_CLUSTER_IS_NODE: "true"
-  NIFI_ZK_CONNECT_STRING: "zookeeper:2181"
-  NIFI_ELECTION_MAX_WAIT: "30 sec"
-  NIFI_SENSITIVE_PROPS_KEY: "my-random-string"
+  NIFI_CLUSTER_IS_NODE: true
+  NIFI_ZK_CONNECT_STRING: zookeeper:2181
+  NIFI_ELECTION_MAX_WAIT: 30 sec
+  NIFI_SENSITIVE_PROPS_KEY: my-random-string
   NIFI_CLUSTER_NODE_PROTOCOL_PORT: 8082
-  SINGLE_USER_CREDENTIALS_USERNAME: *user
-  SINGLE_USER_CREDENTIALS_PASSWORD: *pwd
-  NIFI_SECURITY_USER_AUTHORIZER: "single-user-authorizer"
-  NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER: "single-user-provider"
-  KEYSTORE_PASSWORD: "supersecretkeystore"
-  TRUSTSTORE_PASSWORD: "supersecrettruststore"
-  NIFI_CLUSTER_ADDRESS: "nifi-0"
-  KEYSTORE_PATH: "/opt/certs/nifi-0/keystore.jks"
-  TRUSTSTORE_PATH: "/opt/certs/nifi-0/truststore.jks"
+  SINGLE_USER_CREDENTIALS_USERNAME: nifi
+  SINGLE_USER_CREDENTIALS_PASSWORD: nifinifinifinifi
+  NIFI_SECURITY_USER_AUTHORIZER: single-user-authorizer
+  NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER: single-user-provider
+  INITIAL_ADMIN_IDENTITY: nifi
+  AUTH: tls
+  KEYSTORE_TYPE: JKS
+  KEYSTORE_PASSWORD: keystorepass
+  TRUSTSTORE_TYPE: JKS
+  TRUSTSTORE_PASSWORD: truststorepass
 
 services:
   zookeeper:
@@ -28,9 +26,21 @@ services:
   nifi-toolkit:
     image: apache/nifi-toolkit:latest
     volumes:
-      - ./nifi_certs:/opt/certs
+      - ./volumes/nifi_certs:/opt/certs
     user: root
-    entrypoint: ["bash", "-c", "/opt/nifi-toolkit/*/bin/tls-toolkit.sh standalone -o /opt/certs -n nifi-[0-1] -P supersecrettruststore -K supersecretkeystore -S supersecretkeystore; chown -R nifi:nifi /opt/certs"]
+    entrypoint: 
+      - "bash"
+      - "-c"
+      # Generate the keystore and trustore of each node in the cluster
+      - > 
+          /opt/nifi-toolkit/*/bin/tls-toolkit.sh standalone
+          --subjectAlternativeNames nifi-0,localhost 
+          -o /opt/certs 
+          -n nifi-[0-1] 
+          -P truststorepass 
+          -K keystorepass 
+          -S keystorepass;
+          chown -R nifi:nifi /opt/certs
 
   nifi-0:
     image: apache/nifi:2.0.0-M1
@@ -38,15 +48,37 @@ services:
       nifi-toolkit:
         condition: service_completed_successfully
     volumes:
-      - ./nifi_certs:/opt/certs
+      - ./volumes/nifi_certs:/opt/certs
     ports:
       - 8443:8443
     environment:
       <<: *nifi-environment
+      NIFI_CLUSTER_ADDRESS: "nifi-0"
+      NIFI_WEB_HTTPS_HOST: "nifi-0"
+      KEYSTORE_PATH: "/opt/certs/nifi-0/keystore.jks"
+      TRUSTSTORE_PATH: "/opt/certs/nifi-0/truststore.jks"
     entrypoint:
       - "/bin/bash"
       - "-c"
       - "sed -i 's/nifi.ui.banner.text=.*/nifi.ui.banner.text=nifi-0 /' conf/nifi.properties; ../scripts/start.sh"
+  
+  nifi-1:
+    image: apache/nifi:2.0.0-M1
+    depends_on:
+      nifi-toolkit:
+        condition: service_completed_successfully
+    volumes:
+      - ./volumes/nifi_certs:/opt/certs
+    environment:
+      <<: *nifi-environment
+      NIFI_CLUSTER_ADDRESS: "nifi-1"
+      NIFI_WEB_HTTPS_HOST: "nifi-1"
+      KEYSTORE_PATH: "/opt/certs/nifi-1/keystore.jks"
+      TRUSTSTORE_PATH: "/opt/certs/nifi-1/truststore.jks"
+    entrypoint:
+      - "/bin/bash"
+      - "-c"
+      - "sed -i 's/nifi.ui.banner.text=.*/nifi.ui.banner.text=nifi-1 /' conf/nifi.properties; ../scripts/start.sh"
 
   registry:
     image: apache/nifi-registry:latest
