@@ -26,12 +26,13 @@ services:
   nifi-toolkit:
     image: apache/nifi-toolkit:latest
     volumes:
-      - ./volumes/nifi_certs:/opt/certs
+      - nifi_certs:/opt/certs
     user: root
     entrypoint: 
       - "bash"
       - "-c"
       # Generate the keystore and trustore of each node in the cluster
+      # Adjust the number -n to the number of nodes you want
       - > 
           /opt/nifi-toolkit/*/bin/tls-toolkit.sh standalone
           --subjectAlternativeNames nifi-0,localhost 
@@ -48,39 +49,54 @@ services:
       nifi-toolkit:
         condition: service_completed_successfully
     volumes:
-      - ./volumes/nifi_certs:/opt/certs
+      - nifi_certs:/opt/certs
+      - nifi_0_conf:/opt/nifi/nifi-current/conf
+      - nifi_0_extensions:/opt/nifi/nifi-current/extensions
+      - nifi_0_database_repository:/opt/nifi/nifi-current/database_repository
+      - nifi_0_flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
+      - nifi_0_content_repository:/opt/nifi/nifi-current/content_repository
+      - nifi_0_provenance_repository:/opt/nifi/nifi-current/provenance_repository
+      - nifi_0_state:/opt/nifi/nifi-current/state
+      - nifi_0_logs:/opt/nifi/nifi-current/logs
     ports:
       - 8443:8443
     environment:
       <<: *nifi-environment
-      NIFI_CLUSTER_ADDRESS: "nifi-0"
-      NIFI_WEB_HTTPS_HOST: "nifi-0"
-      KEYSTORE_PATH: "/opt/certs/nifi-0/keystore.jks"
-      TRUSTSTORE_PATH: "/opt/certs/nifi-0/truststore.jks"
-    entrypoint:
-      - "/bin/bash"
-      - "-c"
-      - "sed -i 's/nifi.ui.banner.text=.*/nifi.ui.banner.text=nifi-0 /' conf/nifi.properties; ../scripts/start.sh"
+      NIFI_CLUSTER_ADDRESS: nifi-0
+      NIFI_WEB_HTTPS_HOST: nifi-0
+      KEYSTORE_PATH: /opt/certs/nifi-0/keystore.jks
+      TRUSTSTORE_PATH: /opt/certs/nifi-0/truststore.jks
   
-  nifi-1:
-    image: apache/nifi:2.0.0-M1
-    depends_on:
-      nifi-toolkit:
-        condition: service_completed_successfully
-    volumes:
-      - ./volumes/nifi_certs:/opt/certs
-    environment:
-      <<: *nifi-environment
-      NIFI_CLUSTER_ADDRESS: "nifi-1"
-      NIFI_WEB_HTTPS_HOST: "nifi-1"
-      KEYSTORE_PATH: "/opt/certs/nifi-1/keystore.jks"
-      TRUSTSTORE_PATH: "/opt/certs/nifi-1/truststore.jks"
-    entrypoint:
-      - "/bin/bash"
-      - "-c"
-      - "sed -i 's/nifi.ui.banner.text=.*/nifi.ui.banner.text=nifi-1 /' conf/nifi.properties; ../scripts/start.sh"
+  # If you want another node, uncomment the code below
+  #
+  # nifi-1:
+  #   image: apache/nifi:2.0.0-M1
+  #   depends_on:
+  #     nifi-toolkit:
+  #       condition: service_completed_successfully
+  #   volumes:
+  #     - nifi_certs:/opt/certs
+  #   environment:
+  #     <<: *nifi-environment
+  #     NIFI_CLUSTER_ADDRESS: nifi-1
+  #     NIFI_WEB_HTTPS_HOST: nifi-1
+  #     KEYSTORE_PATH: "/opt/certs/nifi-1/keystore.jks"
+  #     TRUSTSTORE_PATH: "/opt/certs/nifi-1/truststore.jks"
 
   registry:
     image: apache/nifi-registry:latest
     ports:
       - 18080:18080
+
+volumes:
+  # certs
+  nifi_certs:
+  # nifi
+  nifi_0_conf:
+  nifi_0_extensions:
+  nifi_0_database_repository:
+  nifi_0_flowfile_repository:
+  nifi_0_content_repository:
+  nifi_0_provenance_repository:
+  nifi_0_state:
+  nifi_0_logs:
