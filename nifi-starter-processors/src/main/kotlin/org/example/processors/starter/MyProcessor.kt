@@ -4,11 +4,11 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription
 import org.apache.nifi.annotation.documentation.Tags
 import org.apache.nifi.annotation.lifecycle.OnScheduled
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.expression.ExpressionLanguageScope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processor.AbstractProcessor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.ProcessSession
+import org.apache.nifi.processor.ProcessorInitializationContext
 import org.apache.nifi.processor.Relationship
 import org.apache.nifi.processor.util.StandardValidators
 
@@ -22,7 +22,6 @@ class MyProcessor : AbstractProcessor() {
                     .displayName("My property")
                     .description("Example Property")
                     .required(true)
-                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .build()
 
@@ -44,6 +43,11 @@ class MyProcessor : AbstractProcessor() {
 
     override fun getSupportedPropertyDescriptors(): List<PropertyDescriptor> {
         return descriptors
+    }
+
+    override fun init(context: ProcessorInitializationContext) {
+        descriptors = listOf(MY_PROPERTY)
+        relationships = hashSetOf(MY_RELATIONSHIP)
     }
 
     @OnScheduled

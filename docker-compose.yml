@@ -58,6 +58,7 @@ services:
       - nifi_0_provenance_repository:/opt/nifi/nifi-current/provenance_repository
       - nifi_0_state:/opt/nifi/nifi-current/state
       - nifi_0_logs:/opt/nifi/nifi-current/logs
+      - ./nifi-starter-nar/target/:/opt/nifi/nifi-current/nar_extensions
     ports:
       - 8443:8443
     environment:
@@ -100,3 +101,4 @@ volumes:
   nifi_0_provenance_repository:
   nifi_0_state:
   nifi_0_logs:
+  # Add more volumes for more nodes
